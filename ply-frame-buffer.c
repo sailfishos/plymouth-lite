@@ -98,17 +98,14 @@ ply_frame_buffer_close_device (ply_frame_buffer_t *buffer)
 static void
 flush_generic (ply_frame_buffer_t *buffer)
 {
-  unsigned long row, column;
+  unsigned long row;
   char *row_buffer;
-  size_t bytes_per_row;
-  unsigned long x1, y1, x2, y2;
+  unsigned long x1, y1, y2;
 
   x1 = buffer->area_to_flush.x;
   y1 = buffer->area_to_flush.y;
-  x2 = x1 + buffer->area_to_flush.width;
   y2 = y1 + buffer->area_to_flush.height;
 
-  bytes_per_row = buffer->area_to_flush.width * buffer->bytes_per_pixel;
   row_buffer = malloc (buffer->row_stride * buffer->bytes_per_pixel);
   for (row = y1; row < y2; row++)
     {
@@ -124,12 +121,11 @@ flush_generic (ply_frame_buffer_t *buffer)
 static void
 flush_xrgb32 (ply_frame_buffer_t *buffer)
 {
-  unsigned long x1, y1, x2, y2, y;
+  unsigned long x1, y1, y2, y;
   char *dst, *src;
 
   x1 = buffer->area_to_flush.x;
   y1 = buffer->area_to_flush.y;
-  x2 = x1 + buffer->area_to_flush.width;
   y2 = y1 + buffer->area_to_flush.height;
 
   dst = &buffer->map_address[(y1 * buffer->row_stride + x1) * 4];
@@ -147,29 +143,6 @@ flush_xrgb32 (ply_frame_buffer_t *buffer)
       dst += buffer->row_stride * 4;
       src += buffer->area.width * 4;
     }
-}
-
-static const char const *p_visual(int visual)
-{
-  static const char const *visuals[] =
-    {
-      [FB_VISUAL_MONO01] = "FB_VISUAL_MONO01",
-      [FB_VISUAL_MONO10] = "FB_VISUAL_MONO10",
-      [FB_VISUAL_TRUECOLOR] = "FB_VISUAL_TRUECOLOR",
-      [FB_VISUAL_PSEUDOCOLOR] = "FB_VISUAL_PSEUDOCOLOR",
-      [FB_VISUAL_DIRECTCOLOR] = "FB_VISUAL_DIRECTCOLOR",
-      [FB_VISUAL_STATIC_PSEUDOCOLOR] = "FB_VISUAL_STATIC_PSEUDOCOLOR",
-      NULL
-    };
-  static char unknown[] = "invalid visual: -4294967295";
-
-  if (visual < FB_VISUAL_MONO01 || visual > FB_VISUAL_STATIC_PSEUDOCOLOR)
-    {
-      sprintf(unknown, "invalid visual: %d", visual);
-      return unknown;
-    }
-
-  return visuals[visual];
 }
 
 static bool
@@ -202,9 +175,6 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
       int i;
       int depths[] = {32, 24, 16, 0};
 
-//      ply_trace("Visual was %s, trying to find usable mode.\n",
-//                p_visual(fixed_screen_info.visual));
-
       for (i = 0; depths[i] != 0; i++)
         {
           variable_screen_info.bits_per_pixel = depths[i];
@@ -230,8 +200,6 @@ ply_frame_buffer_query_device (ply_frame_buffer_t *buffer)
   if (fixed_screen_info.visual != FB_VISUAL_TRUECOLOR ||
       variable_screen_info.bits_per_pixel < 16)
     {
-//      ply_trace("Visual is %s; not using graphics\n",
-//                p_visual(fixed_screen_info.visual));
       return false;
     }
 
